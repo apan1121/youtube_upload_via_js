@@ -64,12 +64,15 @@ var YoutTubeUplaod = function(inputOptions) {
                 inputVideoFile = file;
                 var fileReader = new FileReader();
                 callback('wait', '10');
+                console.log("here 1");
                 fileReader.onload = function() {
                     callback('wait', '30');
                     var blob = new Blob([fileReader.result], { type: file.type });
                     var url = URL.createObjectURL(blob);
+                    console.log("here 2", url);
                     var video = document.createElement('video');
                     var timeupdate = function() {
+                        console.log("here 5");
                         if (snapImage()) {
                             video.removeEventListener('timeupdate', timeupdate);
                             video.pause();
@@ -77,8 +80,10 @@ var YoutTubeUplaod = function(inputOptions) {
                             callback(false);
                         }
                     };
+                    console.log("here 3");
                     callback('wait', '40');
                     video.addEventListener('loadeddata', function() {
+                        console.log("here 6");
                         if (snapImage()) {
                             video.removeEventListener('timeupdate', timeupdate);
                         } else {
@@ -94,6 +99,7 @@ var YoutTubeUplaod = function(inputOptions) {
                         canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
                         var image = canvas.toDataURL();
                         callback('wait', '80');
+                        console.log("here 7" , image);
                         var success = image.length > 100000;
                         if (success) {
                             if (typeof(callback) == "function") {
@@ -101,8 +107,10 @@ var YoutTubeUplaod = function(inputOptions) {
                             }
                             URL.revokeObjectURL(url);
                         }
+                        console.log("here 8");
                         return success;
                     };
+                    console.log("here 4");
                     video.addEventListener('timeupdate', timeupdate);
                     video.preload = 'metadata';
                     video.src = url;
