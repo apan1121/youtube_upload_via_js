@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <title>Youtube API 上傳 Cors </title>
+    <link rel='stylesheet' href='http://fonts.googleapis.com/css?family=Open+Sans' type='text/css'>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.1/css/bootstrap.min.css" integrity="sha384-WskhaSGFgHYWDcbwN70/dfYBj47jz9qbsMId/iRN3ewGhXQFZCSftd1LZCfmhktB" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.0.13/css/all.css" integrity="sha384-DNOHZ68U8hZfKXOrtjWvjxusGo9WQnrNx2sqG0tfsghAvtVlRW3tvkXWZh58N9jp" crossorigin="anonymous">
+    <link rel='stylesheet' href='./src/css/main.css' type='text/css'>
+    <script src="//ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script>
+    <script src="./src/js/imgLiquid-min.js"></script>
+    <script src="./src/js/youtube_upload.js"></script>
+</head>
+
+<body>
+    <div class="container-fluid">
+        <div class="authCheckBox">
+            <h5>Youtube API 上傳 Cors </h5>
+            <div id="authLoginBox">
+                您需要登入授權才能使用 Youtube 上傳
+                <div id="authLogin">
+                </div>
+            </div>
+            <div id="authCheckNotice" class="authCheckNotice">
+                <p>授權確認中...</p>
+            </div>
+            <div id="uploadBox" style="display: none;">
+                <div class="video_preview imgLiquidFill" id="video_preview">
+                    <img src="" id="preview_img">
+                    <input type="file" style="display:none;">
+                    <i class="upload-icon fas fa-cloud-upload-alt"></i>
+                    <div class="video_preview_notice">
+                        <div class="video_preview_notice_wrapper">
+                            <div class="mask"></div>
+                            <div class="notice">準備上傳</div>
+                        </div>
+                    </div>
+                    <div class="player">
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col">
+                        <a id="reset" class="btn btn-warning btn-sm" href="">重新上傳</a>
+                    </div>
+                    <div class="col text-right">
+                        By: <img src="" class="snippet_thumb"> <span class="snippet_title"></span>
+                    </div>
+                </div>
+                <div class="formBox">
+                    <form>
+                        <div class="form-group">
+                            <label for="title">影片標題</label>
+                            <input type="text" class="form-control" id="title" value="預設標題">
+                        </div>
+                        <div class="form-group">
+                            <label for="description">影片描述</label>
+                            <textarea name="" class="form-control" id="description">預設描述</textarea>
+                        </div>
+                        <div class="form-group">
+                            <label for="tags">標籤</label>
+                            <input type="text" class="form-control" id="tags" placeholder="可用逗號區分多個標籤" value="潛水">
+                        </div>
+                        <div class="form-group">
+                            <label for="description">影片權限</label>
+                            <select class="form-control" id="privacy">
+                                <option value="public">公開</option>
+                                <option value="unlisted">非公開</option>
+                                <option value="private">私人</option>
+                            </select>
+                        </div>
+                        <div class="text-right">
+                            <button type="submit" class="btn btn-primary" id="upload">Submit</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+<script>
+
+
+var search = location.search.substring(1);
+var query = {};
+if (["", null, undefined].indexOf(search) == -1) {
+    query = JSON.parse('{"' + decodeURI(search).replace(/"/g, '\\"').replace(/&/g, '","').replace(/=/g,'":"') + '"}');
+}
+
+
+$(document).ready(function() {
+
+    $("#reset").attr({"href": location.origin + location.pathname}).hide();
+
+
+    var options = {
+        client_id: '737474123816-92hslaf1o63li3esqvvkoqsra2ciedq1.apps.googleusercontent.com',
+        auth_login_button_id: 'authLogin',
+        default_tags: ['Youtube JS 測試'],
+        signin_callback: function(result) {
+            $("#authCheckNotice").hide();
+            if (result.access_token) {
+                $("#authLoginBox").hide();
+            } else {
+                $("#authLoginBox").show();
+            }
+        },
+        youtube_ready: function(snippet) {
+            $("#uploadBox").show();
+            $(".snippet_thumb").attr({ src: snippet.thumbnails.high.url });
+            $(".snippet_title").html(snippet.title);
+
+            if (["", null, undefined].indexOf(query.v) == -1) {
+                youtTubeUplaod.detectVideoStatus(query.v);
+                $('.formBox').slideUp();
+                $("#reset").show();
+            }
+        },
+        youtube_progress: function(percent, uploadSize, totleSize) {
+            $(".video_preview .mask").width((100 - percent) + "%");
+            $(".video_preview .notice").html(percent.toFixed(0)+ " %");
+        },
+        youtube_complete: function(response){
+            window.history.pushState(null, null, "?v="+response.id);
+            $("#reset").show();
+        },
+        youtube_poll_video_status: function(bool, video_status){
+            if (bool) {
+                switch (video_status.uploadStatus) {
+                    case "uploaded":
+                        $(".video_preview .video_preview_notice .mask").width("100%");
+                        $(".video_preview .video_preview_notice .notice").html("處理中");
+                        $(".video_preview .video_preview_notice").show();
+                        break;
+                    case "processed":
+                        $(".video_preview .video_preview_notice .mask").width("100%");
+                        $(".video_preview .video_preview_notice .notice").html("處理完成");
+                        $(".video_preview .player").html(video_status.data.player.embedHtml);
+                        $(".video_preview .player").find("iframe").width("100%").height("100%");
+                        $(".video_preview .player").show();
+                        setTimeout(function(){
+                            $(".video_preview .video_preview_notice").hide();
+                        },100);
+                        break;
+                }
+            } else {
+                $(".video_preview .video_preview_notice .mask").width("100%");
+                $(".video_preview .video_preview_notice .notice").html(video_status);
+                $(".video_preview .video_preview_notice").show();
+            }
+        }
+    };
+
+    var youtTubeUplaod = YoutTubeUplaod(options);
+
+
+    var dropzone = $("#video_preview");
+
+    dropzone.bind('dragover', function() {
+        //add hover class when drag over
+        if (dropzone.data("loading") !== true) {
+            dropzone.addClass('hover');
+        }
+        return false;
+    });
+
+    dropzone.bind('dragleave', function() {
+        //remove hover class when drag out
+        dropzone.removeClass('hover');
+        return false;
+    });
+
+    dropzone.bind('drop', function(e) {
+        //drop in proccess
+        e.stopPropagation();
+        e.preventDefault();
+
+        if (youtTubeUplaod.canUpload()) {
+            dropzone.removeClass('hover');
+            var file = e.originalEvent.dataTransfer.files[0];
+            checkVideo(file);
+        }
+
+
+    });
+
+    dropzone.bind("click", function() {
+        if (youtTubeUplaod.canUpload()) {
+            $(this).find("input[type='file']").trigger("click");
+        }
+    });
+
+    dropzone.find("input[type='file']").bind("click", function(e) {
+        e.stopPropagation();
+    });
+
+    dropzone.find("input[type='file']").bind('change', function() {
+        if (youtTubeUplaod.canUpload()) {
+            var file = $(this)[0].files[0];
+            checkVideo(file);
+        }
+    });
+
+
+    var checkVideo = function(videoFile) {
+
+        var flag = youtTubeUplaod.setVideoFile(videoFile, function(type, image) {
+            if (type == "processed") {
+                $("#preview_img").attr({ src: image });
+                $(".imgLiquidFill").imgLiquid();
+                $(".video_preview .video_preview_notice").hide();
+            } else {
+                console.log(type, image);
+                $(".video_preview .video_preview_notice .mask").width("100%");
+                $(".video_preview .video_preview_notice .notice").html("縮圖產生中");
+                $(".video_preview .video_preview_notice").show();
+                $(".video_preview .upload-icon").hide();
+            }
+        });
+        if (!flag) {
+            alert("只支援影片格式");
+        }
+    }
+
+    $("#upload").bind("click", function(e) {
+        e.stopPropagation();
+        e.preventDefault();
+        var params = {
+            title: $("#title").val(),
+            description: $("#description").val(),
+            tags: (($("#tags").val() != "") ? $("#tags").val().split(",") : []),
+            privacy: $("#privacy").val(),
+        };
+        $(".video_preview_notice .notice").html("準備上傳");
+        $(".video_preview_notice").show();
+
+
+        if (!youtTubeUplaod.upload(params)){
+            alert("尚未放入影片");
+            $(".video_preview_notice").hide();
+        } else {
+            $('.formBox').slideUp();
+        }
+    });
+
+
+
+
+});
+</script>
+
+</html>
